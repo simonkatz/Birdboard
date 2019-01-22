@@ -15,9 +15,11 @@ class ProjectsTest extends TestCase
     {
         $this->withoutExceptionHandling();
         
+        $this->actingAs(factory('App\User')->create());
+        
         $attributes = [
             'title' => $this->faker->sentence,
-            'description' => $this->faker->paragraph
+            'description' => $this->faker->paragraph,
         ];
         
         $this->post('/projects', $attributes)->assertRedirect('/projects');
@@ -28,10 +30,16 @@ class ProjectsTest extends TestCase
     }
     
     /** @test */
-    public function a_user_can_see_a_project()
+    public function only_authenticated_users_can_create_a_project()
     {
-        $this->withoutExceptionHandling();
+        $attributes = factory('App\Project')->raw(['owner_id' => null]);
         
+        $this->post('/projects', $attributes)->assertRedirect( '/login');
+    }
+    
+    /** @test */
+    public function a_user_can_see_a_project()
+    {    
         $project = factory('App\Project')->create();
         
         $this->get($project->path())
@@ -42,6 +50,8 @@ class ProjectsTest extends TestCase
     /** @test */
     public function a_project_requires_a_title()
     {
+        $this->actingAs(factory('App\User')->create());
+        
         $attributes = factory('App\Project')->raw(['title' => '']);
         
         $this->post('/projects', $attributes)->assertSessionHasErrors('title');
@@ -50,18 +60,11 @@ class ProjectsTest extends TestCase
     /** @test */
     public function a_project_requires_a_description()
     {
+        $this->actingAs(factory('App\User')->create());
+        
         $attributes = factory('App\Project')->raw(['description' => '']);
         
         $this->post('/projects', $attributes)->assertSessionHasErrors('description');
     }
     
-    /** @test */
-    public function a_project_requires_an_owner()
-    {
-        $this->withoutExceptionHandling();
-        
-        $attributes = factory('App\Project')->raw(['owner_id' => null]);
-        
-        $this->post('/projects', $attributes)->assertSessionHasErrors('owner_id');
-    }
 }
